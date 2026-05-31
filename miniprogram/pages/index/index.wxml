@@ -1,0 +1,99 @@
+<!--index.wxml-->
+<navigation-bar title="塔罗占卜" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="container">
+    <!-- 用户信息区域 -->
+    <view class="userinfo-section">
+      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
+        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
+        </button>
+        <view class="nickname-wrapper">
+          <text class="nickname-label">昵称</text>
+          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
+        </view>
+      </block>
+      <block wx:elif="{{!hasUserInfo}}">
+        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
+        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
+      </block>
+      <block wx:else>
+        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
+        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
+      </block>
+    </view>
+    
+    <!-- 信息输入区域 -->
+    <view class="tarot-input-section" wx:if="{{hasUserInfo}}">
+      <text class="section-title">请输入您的信息</text>
+      
+      <!-- 生日输入 -->
+      <view class="input-group">
+        <text class="input-label">出生日期</text>
+        <picker mode="date" value="{{birthday}}" start="1900-01-01" end="2026-12-31" bindchange="onBirthdayChange">
+          <view class="picker-input">
+            {{birthday || '请选择出生日期'}}
+          </view>
+        </picker>
+      </view>
+      
+      <!-- 性别选择 -->
+      <view class="input-group">
+        <text class="input-label">性别</text>
+        <view class="gender-selector">
+          <label class="radio-label" bindtap="onGenderChange" data-gender="男">
+            <radio value="男" checked="{{gender === '男'}}" /> 男
+          </label>
+          <label class="radio-label" bindtap="onGenderChange" data-gender="女">
+            <radio value="女" checked="{{gender === '女'}}" /> 女
+          </label>
+        </view>
+      </view>
+      
+      <!-- 出生地输入 -->
+      <view class="input-group">
+        <text class="input-label">出生地</text>
+        <input 
+          class="text-input" 
+          placeholder="例如：北京" 
+          bindinput="onBirthplaceInput"
+          value="{{birthplace}}"
+        ></input>
+      </view>
+      
+      <!-- 占卜问题输入 -->
+      <view class="input-group">
+        <text class="input-label">占卜问题</text>
+        <textarea 
+          class="question-input" 
+          placeholder="例如：我的事业发展如何？" 
+          bindinput="onQuestionInput"
+          value="{{question}}"
+        ></textarea>
+      </view>
+      
+      <button 
+        class="divine-btn" 
+        bindtap="startDivination"
+        disabled="{{!isFormComplete || isDivining}}"
+      >
+        {{isDivining ? '占卜中...' : '开始占卜'}}
+      </button>
+    </view>
+    
+    <!-- 占卜结果区域 -->
+    <view class="tarot-result-section" wx:if="{{showResult}}">
+      <text class="section-title">占卜结果</text>
+      <view class="tarot-card">
+        <image class="card-image" src="{{tarotCard.image}}"></image>
+        <text class="card-name">{{tarotCard.name}}</text>
+      </view>
+      <view class="tarot-interpretation">
+        <text class="interpretation-title">解读</text>
+        <text class="interpretation-content">{{tarotCard.interpretation}}</text>
+      </view>
+      <button class="share-btn" bindtap="shareResult">分享结果</button>
+      <button class="reset-btn" bindtap="resetDivination">重新占卜</button>
+    </view>
+  </view>
+</scroll-view>

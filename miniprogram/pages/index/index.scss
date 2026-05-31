@@ -1,0 +1,240 @@
+/**index.scss**/
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollarea {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 20rpx;
+  box-sizing: border-box;
+  min-height: calc(100vh - 44px);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+  text-align: center;
+  color: #333;
+}
+
+/* 用户信息区域 */
+.userinfo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 20rpx;
+  margin-bottom: 30rpx;
+  background-color: #f9f9f9;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.avatar-wrapper {
+  padding: 0;
+  width: 128rpx;
+  border-radius: 50%;
+  margin-bottom: 30rpx;
+}
+
+.avatar {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+}
+
+.nickname-wrapper {
+  display: flex;
+  width: 100%;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+  align-items: center;
+  border-bottom: 1rpx solid #eaeaea;
+  margin-bottom: 20rpx;
+}
+
+.nickname-label {
+  width: 100rpx;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.nickname-input {
+  flex: 1;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+}
+
+.userinfo-avatar {
+  width: 128rpx;
+  height: 128rpx;
+  margin-bottom: 20rpx;
+  border-radius: 50%;
+}
+
+.userinfo-nickname {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+/* 占卜输入区域 */
+.tarot-input-section {
+  background-color: #f9f9f9;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.input-group {
+  margin-bottom: 24rpx;
+}
+
+.input-label {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.picker-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.gender-selector {
+  display: flex;
+  gap: 40rpx;
+  padding: 10rpx 0;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.radio-label radio {
+  margin-right: 8rpx;
+  transform: scale(1.2);
+}
+
+.text-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background-color: #fff;
+  box-sizing: border-box;
+}
+
+.question-input {
+  width: 100%;
+  min-height: 150rpx;
+  padding: 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background-color: #fff;
+  box-sizing: border-box;
+}
+
+.divine-btn {
+  width: 100%;
+  height: 80rpx;
+  background-color: #6a11cb;
+  color: #fff;
+  font-size: 32rpx;
+  border-radius: 40rpx;
+  margin-top: 10rpx;
+}
+
+/* 占卜结果区域 */
+.tarot-result-section {
+  background-color: #f9f9f9;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.tarot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.card-image {
+  width: 200rpx;
+  height: 300rpx;
+  border-radius: 12rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+}
+
+.card-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-top: 20rpx;
+  color: #333;
+}
+
+.tarot-interpretation {
+  background-color: #fff;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  margin-bottom: 30rpx;
+}
+
+.interpretation-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+  color: #333;
+}
+
+.interpretation-content {
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: #666;
+}
+
+.share-btn {
+  width: 100%;
+  height: 80rpx;
+  background-color: #25D366;
+  color: #fff;
+  font-size: 32rpx;
+  border-radius: 40rpx;
+  margin-bottom: 20rpx;
+}
+
+.reset-btn {
+  width: 100%;
+  height: 80rpx;
+  background-color: #fff;
+  color: #666;
+  font-size: 32rpx;
+  border-radius: 40rpx;
+  border: 1rpx solid #ddd;
+}
