@@ -1,4 +1,8 @@
-﻿import os
+"""
+Simplified Tarot API (without Redis cache)
+"""
+
+import os
 import uuid
 import requests
 import json
@@ -7,13 +11,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
+# Import database module
 from database import init_db, save_reading, get_reading_by_id, get_all_readings, get_readings_by_user, delete_reading
-from redis_cache import init_redis, get_cache, set_cache, clear_all_cache
 
+# Initialize database
 init_db()
-init_redis()
 
 app = FastAPI(title="Tarot Card API")
 
@@ -24,7 +29,6 @@ class TarotResponse(BaseModel):
     card_name: str
     interpretation: str
     reading_id: str
-    from_cache: bool
 
 class DivinationRequest(BaseModel):
     question: str
@@ -35,11 +39,12 @@ class DivinationResponse(BaseModel):
     interpretation: str
     reading_id: str
     created_at: datetime
-    from_cache: bool
 
+# Coze API Configuration
 COZE_API_KEY = os.getenv("COZE_API_KEY")
 COZE_BOT_ID = os.getenv("COZE_BOT_ID")
 
+# Webhook Configuration
 COZE_WEBHOOK_URL = "https://xvxx5bpfs4.coze.site/run"
 COZE_WEBHOOK_TOKEN = os.getenv("COZE_WEBHOOK_TOKEN")
 USE_WEBHOOK = os.getenv("USE_WEBHOOK", "true").lower() == "true"
@@ -69,34 +74,18 @@ async def get_tarot_interpretation(request: TarotRequest):
         raise HTTPException(status_code=400, detail="card_name cannot be empty")
 
     card_name = request.card_name.strip()
+    if not COZE_API_KEY or not COZE_BOT_ID:
+        interpretation = f"This is the interpretation for tarot card '{card_name}'. Mock result."
+    else:
+        interpretation = "Coze API requires Bot ID configuration"
+
     reading_id = str(uuid.uuid4())
-    from_cache = False
-
-    cached_data = get_cache(f"tarot:{card_name}")
-    if cached_data:
-        try:
-            data = json.loads(cached_data)
-            interpretation = data.get("interpretation", "")
-            from_cache = True
-        except:
-            interpretation = cached_data
-            from_cache = True
-
-    if not from_cache:
-        if not COZE_API_KEY or not COZE_BOT_ID:
-            interpretation = f"This is the interpretation for tarot card '{card_name}'. Mock result."
-        else:
-            interpretation = "Coze API requires Bot ID configuration"
-
-        set_cache(f"tarot:{card_name}", json.dumps({"interpretation": interpretation}))
-
     save_reading(reading_id, card_name, interpretation)
 
     return TarotResponse(
         card_name=card_name,
         interpretation=interpretation,
-        reading_id=reading_id,
-        from_cache=from_cache
+        reading_id=reading_id
     )
 
 @app.post("/divination", response_model=DivinationResponse)
@@ -105,32 +94,17 @@ async def divination(request: DivinationRequest):
         raise HTTPException(status_code=400, detail="question cannot be empty")
 
     question = request.question.strip()
+    interpretation = call_coze_webhook(question)
+
     reading_id = str(uuid.uuid4())
-    from_cache = False
-
-    cached_data = get_cache(f"divination:{question}")
-    if cached_data:
-        try:
-            data = json.loads(cached_data)
-            interpretation = data.get("interpretation", "")
-            from_cache = True
-        except:
-            interpretation = cached_data
-            from_cache = True
-
-    if not from_cache:
-        interpretation = call_coze_webhook(question)
-        set_cache(f"divination:{question}", json.dumps({"interpretation": interpretation}))
-
-    save_reading(reading_id, card_name="", interpretation=interpretation,
+    save_reading(reading_id, card_name="", interpretation=interpretation, 
                  question=question, user_id=request.user_id)
 
     return DivinationResponse(
         question=question,
         interpretation=interpretation,
         reading_id=reading_id,
-        created_at=datetime.utcnow(),
-        from_cache=from_cache
+        created_at=datetime.utcnow()
     )
 
 @app.get("/readings")
@@ -148,11 +122,6 @@ async def list_readings(user_id: str = None):
         "user_id": r.user_id,
         "created_at": r.created_at
     } for r in readings]
-
-@app.delete("/cache")
-async def clear_cache():
-    clear_all_cache()
-    return {"message": "Cache cleared successfully"}
 
 @app.get("/health")
 async def health_check():

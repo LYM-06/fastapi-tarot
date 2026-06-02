@@ -1,0 +1,17 @@
+﻿# Python 缓存
+__pycache__/
+*.pyc
+
+# 环境变量
+.env
+
+# 数据库
+*.db
+
+# 临时文件
+fix_encoding.py
+test.py
+测试123/
+
+# 可选：如果你不希望上传 docker-compose.yml（根据需求）
+# docker-compose.yml
