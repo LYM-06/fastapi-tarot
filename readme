@@ -1,10 +1,9 @@
 FastAPI Tarot · 塔罗牌占卜 AI 后端
- 基于 FastAPI + Coze 智能体 + Redis + Docker 的塔罗牌占卜后端服务。配套微信小程序前端，支持 AI 占卜、留言板、占卜日志记录等功能。
+ 基于 FastAPI + Coze 智能体  + Docker 的塔罗牌占卜后端服务。配套微信小程序前端，支持 AI 占卜、留言板、占卜日志记录等功能。
  功能特性
 - AI 塔罗牌占卜：调用 Coze 智能体（Webhook 方式）返回个性化占卜解读
 - 留言板：用户可提交留言，存储于微信云数据库，支持实时展示（小程序端实现）
 - 占卜日志记录：后端自动将每次占卜结果存入 SQLite 数据库，提供 `/logs` 接口查询历史
-- Redis 缓存优化：相同牌名二次查询直接从缓存返回，响应时间从秒级降至毫秒级
 - Docker 一键部署：提供 Dockerfile，`docker run` 即可启动完整服务
 - API 接口：`/tarot_webhook`（占卜）、`/logs`（查询日志）
 
@@ -13,15 +12,15 @@ FastAPI Tarot · 塔罗牌占卜 AI 后端
 | 后端框架 | FastAPI |
 | AI 集成 | Coze 智能体（Webhook 方式） |
 | 数据库 | SQLite（占卜日志）、微信云数据库（留言板） |
-| 缓存 | Redis |
 | 容器化 | Docker |
 | 前端 | 微信小程序（独立仓库） |
 
 快速开始（本地运行后端）
 前置条件
 - Python 3.10+
-- Redis（本地或 Docker 运行）
 - （可选）Docker
 1. 克隆项目
 git clone https://github.com/LYM-06/fastapi-tarot.git
 cd fastapi-tarot
+
+【之前写了个redis功能，想优化响应速度，因为大模型输出的随机性导致redis没用，所以删了，后续可能会增加其他的redis功能。同时因为微信小程序不支持流式输出，响应速度暂时很慢】
