@@ -6,6 +6,7 @@ page {
 .scrollarea {
   flex: 1;
   overflow-y: hidden;
+  padding-top: env(safe-area-inset-top);
 }
 .log-item {
   margin-top: 20rpx;

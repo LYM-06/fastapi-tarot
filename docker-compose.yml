@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  tarot-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tarot-api
+    ports:
+      - "8000:8000"
+    environment:
+      - COZE_API_KEY=${COZE_API_KEY}
+      - COZE_BOT_ID=${COZE_BOT_ID}
+      - COZE_WEBHOOK_URL=${COZE_WEBHOOK_URL}
+      - COZE_WEBHOOK_TOKEN=${COZE_WEBHOOK_TOKEN}
+      - USE_WEBHOOK=${USE_WEBHOOK:-true}
+    restart: unless-stopped

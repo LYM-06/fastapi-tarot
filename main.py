@@ -1,19 +1,18 @@
 ﻿import os
 import uuid
 import requests
-import json
+import asyncio
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from database import init_db, save_reading, get_reading_by_id, get_all_readings, get_readings_by_user, delete_reading
-from redis_cache import init_redis, get_cache, set_cache, clear_all_cache
 
 init_db()
-init_redis()
 
 app = FastAPI(title="Tarot Card API")
 
@@ -24,7 +23,6 @@ class TarotResponse(BaseModel):
     card_name: str
     interpretation: str
     reading_id: str
-    from_cache: bool
 
 class DivinationRequest(BaseModel):
     question: str
@@ -35,12 +33,11 @@ class DivinationResponse(BaseModel):
     interpretation: str
     reading_id: str
     created_at: datetime
-    from_cache: bool
 
 COZE_API_KEY = os.getenv("COZE_API_KEY")
 COZE_BOT_ID = os.getenv("COZE_BOT_ID")
 
-COZE_WEBHOOK_URL = "https://xvxx5bpfs4.coze.site/run"
+COZE_WEBHOOK_URL = os.getenv("COZE_WEBHOOK_URL", "https://r4vn2mxn8t.coze.site/stream_run")
 COZE_WEBHOOK_TOKEN = os.getenv("COZE_WEBHOOK_TOKEN")
 USE_WEBHOOK = os.getenv("USE_WEBHOOK", "true").lower() == "true"
 
@@ -54,14 +51,145 @@ def call_coze_webhook(question: str) -> str:
     if COZE_WEBHOOK_TOKEN:
         headers["Authorization"] = f"Bearer {COZE_WEBHOOK_TOKEN}"
 
-    payload = {"question": question}
+    payload = {
+        "content": {
+            "text": question
+        }
+    }
     try:
-        response = requests.post(COZE_WEBHOOK_URL, headers=headers, json=payload, timeout=30)
+        response = requests.post(COZE_WEBHOOK_URL, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
-        data = response.json()
-        return data.get("interpretation", str(data))
+        data = response.text
+        
+        # 解析 SSE 格式响应
+        lines = data.split('\n')
+        final_answer = ''
+        for line in lines:
+            line = line.strip()
+            if line.startswith('data:'):
+                try:
+                    json_str = line[5:].strip()
+                    json_obj = json.loads(json_str)
+                    
+                    def extract_text(obj):
+                        if not obj:
+                            return ''
+                        if isinstance(obj, str):
+                            return obj
+                        if 'text' in obj and isinstance(obj['text'], str):
+                            return obj['text']
+                        if 'content' in obj and isinstance(obj['content'], str):
+                            return obj['content']
+                        if 'answer' in obj and isinstance(obj['answer'], str):
+                            return obj['answer']
+                        if 'data' in obj:
+                            return extract_text(obj['data'])
+                        if 'message' in obj:
+                            return extract_text(obj['message'])
+                        if 'content' in obj and isinstance(obj['content'], dict):
+                            return extract_text(obj['content'])
+                        return ''
+                    
+                    text = extract_text(json_obj)
+                    if text:
+                        final_answer += text
+                except:
+                    pass
+        
+        if not final_answer:
+            final_answer = data if len(data) < 500 else data[:500]
+        
+        return final_answer
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Webhook error: {str(e)}")
+
+async def stream_response(content: str, delay: float = 0.01, chunk_size: int = 4):
+    """流式输出内容，按块返回 - 优化后速度更快"""
+    for i in range(0, len(content), chunk_size):
+        yield content[i:i+chunk_size]
+        await asyncio.sleep(delay)
+
+async def stream_coze_response(question: str):
+    """直接从 Coze API 流式获取响应并转发"""
+    if not USE_WEBHOOK:
+        content = f"This is a tarot reading for the question '{question}'. Returning mock result."
+        async for chunk in stream_response(content):
+            yield chunk
+        return
+    
+    import json
+    
+    headers = {
+        "Content-Type": "application/json"
+    }
+    if COZE_WEBHOOK_TOKEN:
+        headers["Authorization"] = f"Bearer {COZE_WEBHOOK_TOKEN}"
+    
+    payload = {
+        "content": {
+            "text": question
+        }
+    }
+    try:
+        response = requests.post(
+            COZE_WEBHOOK_URL, 
+            headers=headers, 
+            json=payload, 
+            timeout=180,
+            stream=True
+        )
+        response.raise_for_status()
+        
+        buffer = ""
+        for chunk in response.iter_content(chunk_size=1024, decode_unicode=True):
+            if chunk:
+                buffer += chunk
+                
+                # 处理 SSE 格式
+                while '\n' in buffer:
+                    line_end = buffer.index('\n')
+                    line = buffer[:line_end].strip()
+                    buffer = buffer[line_end+1:]
+                    
+                    if line.startswith('data:'):
+                        try:
+                            json_str = line[5:].strip()
+                            json_obj = json.loads(json_str)
+                            
+                            def extract_text(obj):
+                                if not obj:
+                                    return ''
+                                if isinstance(obj, str):
+                                    return obj
+                                if 'text' in obj and isinstance(obj['text'], str):
+                                    return obj['text']
+                                if 'content' in obj and isinstance(obj['content'], str):
+                                    return obj['content']
+                                if 'answer' in obj and isinstance(obj['answer'], str):
+                                    return obj['answer']
+                                if 'data' in obj:
+                                    return extract_text(obj['data'])
+                                if 'message' in obj:
+                                    return extract_text(obj['message'])
+                                if 'content' in obj and isinstance(obj['content'], dict):
+                                    return extract_text(obj['content'])
+                                return ''
+                            
+                            text = extract_text(json_obj)
+                            if text:
+                                # 立即输出获取到的文本
+                                for i in range(0, len(text), 4):
+                                    yield text[i:i+4]
+                                    await asyncio.sleep(0.005)
+                        except:
+                            pass
+        
+        # 输出剩余内容
+        if buffer:
+            yield buffer
+            
+    except Exception as e:
+        yield f"Error: {str(e)}"
 
 @app.post("/tarot", response_model=TarotResponse)
 async def get_tarot_interpretation(request: TarotRequest):
@@ -70,33 +198,18 @@ async def get_tarot_interpretation(request: TarotRequest):
 
     card_name = request.card_name.strip()
     reading_id = str(uuid.uuid4())
-    from_cache = False
 
-    cached_data = get_cache(f"tarot:{card_name}")
-    if cached_data:
-        try:
-            data = json.loads(cached_data)
-            interpretation = data.get("interpretation", "")
-            from_cache = True
-        except:
-            interpretation = cached_data
-            from_cache = True
-
-    if not from_cache:
-        if not COZE_API_KEY or not COZE_BOT_ID:
-            interpretation = f"This is the interpretation for tarot card '{card_name}'. Mock result."
-        else:
-            interpretation = "Coze API requires Bot ID configuration"
-
-        set_cache(f"tarot:{card_name}", json.dumps({"interpretation": interpretation}))
+    if not COZE_API_KEY or not COZE_BOT_ID:
+        interpretation = f"This is the interpretation for tarot card '{card_name}'. Mock result."
+    else:
+        interpretation = "Coze API requires Bot ID configuration"
 
     save_reading(reading_id, card_name, interpretation)
 
     return TarotResponse(
         card_name=card_name,
         interpretation=interpretation,
-        reading_id=reading_id,
-        from_cache=from_cache
+        reading_id=reading_id
     )
 
 @app.post("/divination", response_model=DivinationResponse)
@@ -106,21 +219,8 @@ async def divination(request: DivinationRequest):
 
     question = request.question.strip()
     reading_id = str(uuid.uuid4())
-    from_cache = False
 
-    cached_data = get_cache(f"divination:{question}")
-    if cached_data:
-        try:
-            data = json.loads(cached_data)
-            interpretation = data.get("interpretation", "")
-            from_cache = True
-        except:
-            interpretation = cached_data
-            from_cache = True
-
-    if not from_cache:
-        interpretation = call_coze_webhook(question)
-        set_cache(f"divination:{question}", json.dumps({"interpretation": interpretation}))
+    interpretation = call_coze_webhook(question)
 
     save_reading(reading_id, card_name="", interpretation=interpretation,
                  question=question, user_id=request.user_id)
@@ -129,8 +229,32 @@ async def divination(request: DivinationRequest):
         question=question,
         interpretation=interpretation,
         reading_id=reading_id,
-        created_at=datetime.utcnow(),
-        from_cache=from_cache
+        created_at=datetime.utcnow()
+    )
+
+@app.post("/divination/stream")
+async def divination_stream(request: DivinationRequest):
+    """流式占卜接口 - 立即开始输出结果"""
+    if not request.question or not request.question.strip():
+        raise HTTPException(status_code=400, detail="question cannot be empty")
+
+    question = request.question.strip()
+    reading_id = str(uuid.uuid4())
+    
+    # 使用新的流式响应函数，立即开始返回数据
+    async def generate_stream():
+        full_response = ""
+        async for chunk in stream_coze_response(question):
+            full_response += chunk
+            yield chunk
+        
+        # 在流结束后保存到数据库
+        save_reading(reading_id, card_name="", interpretation=full_response,
+                     question=question, user_id=request.user_id)
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/plain"
     )
 
 @app.get("/readings")
@@ -148,11 +272,6 @@ async def list_readings(user_id: str = None):
         "user_id": r.user_id,
         "created_at": r.created_at
     } for r in readings]
-
-@app.delete("/cache")
-async def clear_cache():
-    clear_all_cache()
-    return {"message": "Cache cleared successfully"}
 
 @app.get("/health")
 async def health_check():

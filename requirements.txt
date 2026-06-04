@@ -1,7 +1,6 @@
-﻿fastapi
+fastapi
 uvicorn
 pydantic
 python-dotenv
-redis
 requests
 sqlalchemy

@@ -1,4 +1,4 @@
-﻿# Python 缓存
+# Python 缓存
 __pycache__/
 *.pyc
 
@@ -15,3 +15,7 @@ test.py
 
 # 可选：如果你不希望上传 docker-compose.yml（根据需求）
 # docker-compose.yml
+
+# IDE 配置
+.vscode/
+.idea/
